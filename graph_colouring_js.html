@@ -1,0 +1,220 @@
+<html>
+<head><title>Graph</title>
+
+
+<style type="text/css"></style>
+<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+</head>
+<body style="background-color: #8A2908;">
+<center><h2>Graph Coloring</h2></center>
+<center>
+<canvas id="myCanvas" width="900" height="450" style="border:5px solid black; background-color: #ffffff; z-index: 0">
+Your browser does not support the HTML5 canvas tag.</canvas>
+</center>
+<br>
+<center>
+
+<button id="vertex" title="Draw Vertex" style="left:420px;">Vertex</button>
+<button id="edge" title="Draw Edge" style="left:530px;" >Edge</button>
+<button id="submit" onclick="send()" title="Press for Graph Coloring!" style="left:760px;">Submit</button>
+<button id="clear" title="Crear the graph" style="left:650px;">Clear</button>
+</center>
+<script type="text/javascript">
+
+var board = document.getElementById("myCanvas");
+var ctx = board.getContext("2d");
+var node_set = [], adj_list = {}, node_id = 0, tool = "vertex", edge_started = false;
+var colorset = ['#4000FF', '#31B404', '#DF0101', '#FFFF00', '#8A084B', '#04B4AE', '#5F4C0B', '#B404AE'];
+$(document).ready(function(){
+  $("#vertex").click(function(){ tool = "vertex";
+  });
+  $("#edge").click(function(){
+    tool = "edge";
+  });
+  $("#clear").click(function(){
+    clears();
+  });
+});
+
+board.onmousedown = function(e) {
+  var x = e.pageX - this.offsetLeft;
+  var y = e.pageY - this.offsetTop;
+  if(tool=="vertex"){
+    ctx.fillStyle = "#000000"
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0 , 2 * Math.PI, false);
+    ctx.fill();
+    ctx.closePath();
+    ctx.fillText(++node_id, 0, 0);
+    node_set.push({id: node_id, "x": x, "y": y});
+  }
+  if(tool=="edge"){
+    for(var i=0;i<node_set.length;i++){
+      var n_x = node_set[i].x, n_y = node_set[i].y;
+        if(!adj_list[i+1]){
+          adj_list[i+1] = [];
+        }
+        if(x <= n_x+10 && x >= n_x-10 && y <= n_y+10 && y >= n_y-10){
+          if(!edge_started){
+            s_x = n_x, s_y = n_y;
+            glitter(s_x, s_y);
+            ctx.beginPath();
+            ctx.moveTo(n_x, n_y);
+            edge_started = true;
+            bgn_vertex = i+1;
+            
+          }
+          else{
+            draw_edge(n_x, n_y);
+            glitter(s_x, s_y);
+            edge_started = false;
+            adj_list[bgn_vertex].push(node_set[i]["id"]);
+            adj_list[node_set[i].id].push(node_set[bgn_vertex-1]["id"]);
+          }
+        }
+      }
+    }
+ }
+
+function glitter(x, y){
+  if(!edge_started){
+    ctx.fillStyle = "#FBF5EF"
+  }
+  else{
+    ctx.fillStyle = "#000000"
+  }
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.arc(x, y, 10, 0 , 2 * Math.PI, false);
+  ctx.fill();
+  ctx.closePath();
+
+}
+
+function draw_edge(e_x, e_y){
+  ctx.lineTo(e_x, e_y);
+  ctx.stroke();
+  ctx.closePath();
+}
+
+
+function sortDict(dict){
+  var keys = [];
+  for(var key in dict) { 
+    keys[keys.length] = key;
+  }
+
+  var sortedValues = keys.sort(sortNumber);
+
+  function sortNumber(a,b) {
+     return dict[b].length - dict[a].length;
+  }
+
+  var new_dict = [];
+  for (i=0; i<sortedValues.length; i++) {
+    new_dict.push({
+      key: sortedValues[i],
+      value: dict[sortedValues[i]]
+    });
+  }
+  return new_dict;
+}
+
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+};
+
+function remove_duplicates_safe(arr) {
+    var obj = {};
+    var arr2 = [];
+    for (var i = 0; i < arr.length; i++) {
+        if (!(arr[i] in obj)) {
+            arr2.push(arr[i]);
+            obj[arr[i]] = true;
+        }
+    }
+    return arr2;
+
+}
+
+function diff(arr1, arr2) {
+    var obj = {}, matched = [],
+        unmatched = [];
+    for (var i = 0, l = arr1.length; i < l; i++) {
+        obj[arr1[i]] = (obj[arr1[i]] || 0) + 1;
+    }
+    for (i = 0; i < arr2.length; i++) {
+        var val = arr2[i];
+        if (val in obj) {
+            matched.push(val);
+        } else {
+            unmatched.push(val);
+        }
+    }
+    return matched;
+}
+
+
+function convert(adj_data){
+  adj = adj_data;
+  color = {};
+  cur_color = 0;
+  colored_with_cur = {};
+  uncolored = sortDict(adj);
+  console.log(uncolored);
+  while (Object.size(uncolored) > 0){
+    first = parseInt(uncolored[0].key);
+    uncolored.splice(0, 1)
+    color[first] = cur_color
+    console.log(color);
+    colored_with_cur[cur_color] = []
+    colored_with_cur[cur_color].push(first)
+    uncolored_dup = uncolored.slice(0);
+    for (key in uncolored_dup){
+      var diff_arr = diff(remove_duplicates_safe(uncolored_dup[key].value), colored_with_cur[cur_color])
+      if (diff_arr.length < 1){
+        uncolored.splice(key, 1)
+        // delete uncolored[key]
+        cur_vertex = parseInt(uncolored_dup[key].key)
+        color[cur_vertex] = cur_color
+        colored_with_cur[cur_color].push(cur_vertex)
+      }
+    }
+    cur_color += 1;
+  }
+  console.log(color);
+  return color;
+}
+
+function send(){
+  data = convert(adj_list);
+  colorify_graph(data);
+}
+
+function colorify_graph(data){
+  for(var i=0;i<=node_set.length;i++){
+    ctx.fillStyle = colorset[data[i+1]];
+    ctx.beginPath();
+    ctx.arc(node_set[i].x, node_set[i].y, 10, 0 , 2 * Math.PI, false);
+    ctx.fill();
+    ctx.closePath();
+  }
+}
+
+function clears(){
+  c.fillStyle="white"
+  c.fillRect(0,0,1200,500)
+}
+// function clears(){
+//   ctx.clearRect(0,0,1200,500)
+// }
+
+</script>
+
+</body>
+</html>
